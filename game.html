@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Villain's Rewrite - Multiplayer</title>
+
+<style>
+body{
+    margin:0;
+    background:black;
+    color:white;
+    font-family:Arial;
+}
+
+#bg{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:linear-gradient(black, darkred);
+}
+
+#ui{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    background:rgba(0,0,0,0.8);
+    padding:20px;
+}
+
+#text{min-height:100px; font-size:20px;}
+
+button{
+    margin:5px;
+    padding:10px 20px;
+    background:#b3003c;
+    border:none;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+#stats{
+    position:absolute;
+    top:10px;
+    left:10px;
+    background:rgba(0,0,0,0.5);
+    padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="bg"></div>
+
+<div id="stats">
+❤️ Romance: <span id="love">0</span><br>
+🧠 Strategy: <span id="brain">0</span><br>
+⚔️ Power: <span id="power">0</span>
+</div>
+
+<div id="ui">
+<div id="text"></div>
+<div id="choices"></div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+// 🔥 PUT YOUR FIREBASE CONFIG HERE
+var firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_APP.firebaseapp.com",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_ID"
+};
+firebase.initializeApp(firebaseConfig);
+
+let db = firebase.database();
+
+let room = prompt("Enter room name:");
+let player = prompt("Player 1 or 2:");
+
+let ref = db.ref("rooms/" + room);
+
+// Default state
+let state = {
+    text: "You and your partner awaken as a villain couple destined to die.",
+    love:0,
+    brain:0,
+    power:0,
+    choices:[
+        {text:"Rewrite fate together", next:"plan"},
+        {text:"Follow original story", next:"fail"}
+    ]
+};
+
+// Sync
+ref.on("value", snap=>{
+    let data = snap.val();
+    if(data) render(data);
+});
+
+// Update
+function update(s){
+    ref.set(s);
+}
+
+// Render
+function render(s){
+    document.getElementById("text").innerText = s.text;
+    document.getElementById("love").innerText = s.love;
+    document.getElementById("brain").innerText = s.brain;
+    document.getElementById("power").innerText = s.power;
+
+    let div = document.getElementById("choices");
+    div.innerHTML="";
+
+    s.choices.forEach(c=>{
+        let b=document.createElement("button");
+        b.innerText=c.text;
+        b.onclick=()=>next(c.next);
+        div.appendChild(b);
+    });
+}
+
+// Story logic (expandable to 20 chapters)
+function next(choice){
+    let s = {...state};
+
+    if(choice==="plan"){
+        s.text="You both decide to defy fate and destroy the heroes.";
+        s.brain+=2; s.love+=1;
+        s.choices=[
+            {text:"Target first hero", next:"hero1"},
+            {text:"Build power secretly", next:"power"}
+        ];
+    }
+
+    if(choice==="fail"){
+        s.text="You follow the original story. Execution arrives. GAME OVER.";
+        s.choices=[{text:"Restart", next:"start"}];
+    }
+
+    if(choice==="hero1"){
+        s.text="The first protagonist appears.";
+        s.choices=[
+            {text:"Assassinate", next:"kill"},
+            {text:"Manipulate", next:"smart"}
+        ];
+    }
+
+    if(choice==="kill"){
+        s.text="You eliminate the hero early.";
+        s.power+=2;
+        s.choices=[{text:"Next Chapter", next:"chapter2"}];
+    }
+
+    if(choice==="smart"){
+        s.text="You outplay the hero mentally.";
+        s.brain+=2;
+        s.choices=[{text:"Next Chapter", next:"chapter2"}];
+    }
+
+    if(choice==="power"){
+        s.text="You gather influence in shadows.";
+        s.power+=2;
+        s.choices=[{text:"Next Chapter", next:"chapter2"}];
+    }
+
+    if(choice==="chapter2"){
+        s.text="More protagonists emerge. The story is changing...";
+        s.choices=[
+            {text:"Deepen romance", next:"romance"},
+            {text:"Expand empire", next:"empire"}
+        ];
+    }
+
+    if(choice==="romance"){
+        s.text="Your bond deepens. Trust becomes your weapon.";
+        s.love+=3;
+        s.choices=[{text:"Continue", next:"end"}];
+    }
+
+    if(choice==="empire"){
+        s.text="You build power across the kingdom.";
+        s.power+=3;
+        s.choices=[{text:"Continue", next:"end"}];
+    }
+
+    if(choice==="end"){
+        if(s.love>=5 && s.brain>=3){
+            s.text="TRUE END ❤️ You rewrite fate together.";
+        } else if(s.power>=5){
+            s.text="POWER END ⚔️ You rule, but love fades.";
+        } else {
+            s.text="BAD END 💀 The story corrects itself.";
+        }
+        s.choices=[{text:"Replay", next:"start"}];
+    }
+
+    if(choice==="start"){
+        location.reload();
+    }
+
+    state = s;
+    update(state);
+}
+
+// Init
+update(state);
+</script>
+
+</body>
+</html>
