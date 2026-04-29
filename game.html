@@ -1,33 +1,39 @@
+
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Villain's Rewrite - Multiplayer</title>
+<title>Villain's Rewrite</title>
 
 <style>
 body{
     margin:0;
-    background:black;
-    color:white;
     font-family:Arial;
+    background:linear-gradient(black, darkred);
+    color:white;
 }
 
-#bg{
+#stats{
     position:absolute;
-    width:100%;
-    height:100%;
-    background:linear-gradient(black, darkred);
+    top:10px;
+    left:10px;
+    background:rgba(0,0,0,0.6);
+    padding:10px;
+    border-radius:10px;
 }
 
 #ui{
     position:absolute;
     bottom:0;
     width:100%;
-    background:rgba(0,0,0,0.8);
+    background:rgba(0,0,0,0.85);
     padding:20px;
 }
 
-#text{min-height:100px; font-size:20px;}
+#text{
+    min-height:100px;
+    font-size:20px;
+}
 
 button{
     margin:5px;
@@ -38,20 +44,10 @@ button{
     border-radius:8px;
     cursor:pointer;
 }
-
-#stats{
-    position:absolute;
-    top:10px;
-    left:10px;
-    background:rgba(0,0,0,0.5);
-    padding:10px;
-}
 </style>
 </head>
 
 <body>
-
-<div id="bg"></div>
 
 <div id="stats">
 ❤️ Romance: <span id="love">0</span><br>
@@ -64,153 +60,188 @@ button{
 <div id="choices"></div>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
 <script>
-// 🔥 PUT YOUR FIREBASE CONFIG HERE
-var firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_APP.firebaseapp.com",
-  databaseURL: "YOUR_DB_URL",
-  projectId: "YOUR_ID"
-};
-firebase.initializeApp(firebaseConfig);
+// stats
+let love=0, brain=0, power=0;
 
-let db = firebase.database();
+// update stats UI
+function updateStats(){
+document.getElementById("love").innerText=love;
+document.getElementById("brain").innerText=brain;
+document.getElementById("power").innerText=power;
+}
 
-let room = prompt("Enter room name:");
-let player = prompt("Player 1 or 2:");
+// show text
+function show(text){
+document.getElementById("text").innerText=text;
+}
 
-let ref = db.ref("rooms/" + room);
-
-// Default state
-let state = {
-    text: "You and your partner awaken as a villain couple destined to die.",
-    love:0,
-    brain:0,
-    power:0,
-    choices:[
-        {text:"Rewrite fate together", next:"plan"},
-        {text:"Follow original story", next:"fail"}
-    ]
-};
-
-// Sync
-ref.on("value", snap=>{
-    let data = snap.val();
-    if(data) render(data);
+// show choices
+function showChoices(arr){
+let div=document.getElementById("choices");
+div.innerHTML="";
+arr.forEach(c=>{
+let b=document.createElement("button");
+b.innerText=c.text;
+b.onclick=c.action;
+div.appendChild(b);
 });
-
-// Update
-function update(s){
-    ref.set(s);
 }
 
-// Render
-function render(s){
-    document.getElementById("text").innerText = s.text;
-    document.getElementById("love").innerText = s.love;
-    document.getElementById("brain").innerText = s.brain;
-    document.getElementById("power").innerText = s.power;
+// GAME START
+function start(){
+show("You wake up in a royal chamber.\n\nA woman stands beside you.\n\nShe speaks: \"We’ve been reincarnated… as villains. And we are destined to be killed by the protagonists.\"");
 
-    let div = document.getElementById("choices");
-    div.innerHTML="";
+showChoices([
+{text:"Accept fate", action:badEnd},
+{text:"Change destiny", action:plan}
+]);
 
-    s.choices.forEach(c=>{
-        let b=document.createElement("button");
-        b.innerText=c.text;
-        b.onclick=()=>next(c.next);
-        div.appendChild(b);
-    });
+updateStats();
 }
 
-// Story logic (expandable to 20 chapters)
-function next(choice){
-    let s = {...state};
+// BAD END
+function badEnd(){
+show("You follow the original story.\n\nExecution day arrives.\n\nYou both are killed.\n\n💀 GAME OVER");
 
-    if(choice==="plan"){
-        s.text="You both decide to defy fate and destroy the heroes.";
-        s.brain+=2; s.love+=1;
-        s.choices=[
-            {text:"Target first hero", next:"hero1"},
-            {text:"Build power secretly", next:"power"}
-        ];
-    }
-
-    if(choice==="fail"){
-        s.text="You follow the original story. Execution arrives. GAME OVER.";
-        s.choices=[{text:"Restart", next:"start"}];
-    }
-
-    if(choice==="hero1"){
-        s.text="The first protagonist appears.";
-        s.choices=[
-            {text:"Assassinate", next:"kill"},
-            {text:"Manipulate", next:"smart"}
-        ];
-    }
-
-    if(choice==="kill"){
-        s.text="You eliminate the hero early.";
-        s.power+=2;
-        s.choices=[{text:"Next Chapter", next:"chapter2"}];
-    }
-
-    if(choice==="smart"){
-        s.text="You outplay the hero mentally.";
-        s.brain+=2;
-        s.choices=[{text:"Next Chapter", next:"chapter2"}];
-    }
-
-    if(choice==="power"){
-        s.text="You gather influence in shadows.";
-        s.power+=2;
-        s.choices=[{text:"Next Chapter", next:"chapter2"}];
-    }
-
-    if(choice==="chapter2"){
-        s.text="More protagonists emerge. The story is changing...";
-        s.choices=[
-            {text:"Deepen romance", next:"romance"},
-            {text:"Expand empire", next:"empire"}
-        ];
-    }
-
-    if(choice==="romance"){
-        s.text="Your bond deepens. Trust becomes your weapon.";
-        s.love+=3;
-        s.choices=[{text:"Continue", next:"end"}];
-    }
-
-    if(choice==="empire"){
-        s.text="You build power across the kingdom.";
-        s.power+=3;
-        s.choices=[{text:"Continue", next:"end"}];
-    }
-
-    if(choice==="end"){
-        if(s.love>=5 && s.brain>=3){
-            s.text="TRUE END ❤️ You rewrite fate together.";
-        } else if(s.power>=5){
-            s.text="POWER END ⚔️ You rule, but love fades.";
-        } else {
-            s.text="BAD END 💀 The story corrects itself.";
-        }
-        s.choices=[{text:"Replay", next:"start"}];
-    }
-
-    if(choice==="start"){
-        location.reload();
-    }
-
-    state = s;
-    update(state);
+showChoices([
+{text:"Restart", action:start}
+]);
 }
 
-// Init
-update(state);
+// PLAN
+function plan(){
+brain+=2;
+love+=1;
+updateStats();
+
+show("You decide to rewrite fate.\n\nShe smiles slightly.\n\n\"Then we fight back… together.\"");
+
+showChoices([
+{text:"Build trust with her", action:bond},
+{text:"Focus on gaining power", action:powerRoute}
+]);
+}
+
+// ROMANCE PATH
+function bond(){
+love+=2;
+updateStats();
+
+show("You spend time with her.\n\nShe opens up. She was never truly evil.\n\nYour bond grows.");
+
+showChoices([
+{text:"Promise to protect her", action:romance},
+{text:"Stay strategic", action:neutral}
+]);
+}
+
+function romance(){
+love+=2;
+updateStats();
+
+show("She looks at you differently now.\n\n\"Maybe this life… can be different.\"");
+
+showChoices([
+{text:"Face first protagonist", action:hero1}
+]);
+}
+
+// NEUTRAL
+function neutral(){
+brain+=1;
+updateStats();
+
+show("You keep emotions controlled.\n\nNo weakness. Only strategy.");
+
+showChoices([
+{text:"Face first protagonist", action:hero1}
+]);
+}
+
+// POWER ROUTE
+function powerRoute(){
+power+=2;
+updateStats();
+
+show("You begin gathering power in secret.\n\nAllies. Influence. Strength.");
+
+showChoices([
+{text:"Face first protagonist", action:hero1}
+]);
+}
+
+// HERO 1
+function hero1(){
+show("The first protagonist appears.\n\nA righteous hero meant to kill you.");
+
+showChoices([
+{text:"Eliminate him early", action:killHero},
+{text:"Manipulate him", action:manipulate}
+]);
+}
+
+function killHero(){
+power+=2;
+updateStats();
+
+show("You strike first.\n\nThe hero is defeated before he becomes strong.");
+
+showChoices([
+{text:"Next Arc", action:nextArc}
+]);
+}
+
+function manipulate(){
+brain+=2;
+updateStats();
+
+show("You twist the narrative.\n\nThe hero begins doubting everything.");
+
+showChoices([
+{text:"Next Arc", action:nextArc}
+]);
+}
+
+// NEXT ARC
+function nextArc(){
+show("But this world had multiple protagonists.\n\nAnother rises… and another.\n\nThe story is changing.");
+
+showChoices([
+{text:"Deepen romance", action:finalRomance},
+{text:"Expand empire", action:finalPower}
+]);
+}
+
+// ENDINGS
+function finalRomance(){
+love+=3;
+updateStats();
+
+if(love>=6 && brain>=3){
+show("❤️ TRUE END\n\nYou rewrite fate together.\n\nLove and strategy triumph.");
+}else{
+show("💔 BITTERSWEET END\n\nYou survive… but something is missing.");
+}
+
+showChoices([{text:"Play Again", action:start}]);
+}
+
+function finalPower(){
+power+=3;
+updateStats();
+
+if(power>=6){
+show("⚔️ TYRANT END\n\nYou conquer everything.\n\nBut lose her in the process.");
+}else{
+show("💀 FAILURE END\n\nThe story corrects itself.\n\nA new hero defeats you.");
+}
+
+showChoices([{text:"Retry", action:start}]);
+}
+
+// start game
+start();
 </script>
 
 </body>
